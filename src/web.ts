@@ -1,4 +1,4 @@
-import { registerWebPlugin, WebPlugin } from '@capacitor/core';
+import { registerPlugin, WebPlugin } from '@capacitor/core';
 import {
   AccountParams,
   ApplePayOptions,
@@ -28,13 +28,17 @@ import {
   ValidateExpiryDateOptions,
   ValidityResponse,
 } from './definitions';
-import { ConfirmCardPaymentData, Stripe } from '@stripe/stripe-js'
+import { ConfirmCardPaymentData, Stripe } from '@stripe/stripe-js';
 
 function flatten(json: any, prefix?: string, omit?: string[]): any {
   let obj: any = {};
 
   for (const prop of Object.keys(json)) {
-    if (typeof json[prop] !== 'undefined' && json[prop] !== null && (!Array.isArray(omit) || !omit.includes(prop))) {
+    if (
+      typeof json[prop] !== 'undefined' &&
+      json[prop] !== null &&
+      (!Array.isArray(omit) || !omit.includes(prop))
+    ) {
       if (typeof json[prop] === 'object') {
         obj = {
           ...obj,
@@ -82,11 +86,18 @@ async function _callStripeAPI(fetchUrl: string, fetchOpts: RequestInit) {
   if (res.ok) {
     return parsed;
   } else {
-    throw parsed && parsed.error && parsed.error.message ? parsed.error.message : parsed;
+    throw parsed && parsed.error && parsed.error.message
+      ? parsed.error.message
+      : parsed;
   }
 }
 
-async function _stripePost(path: string, body: string, key: string, extraHeaders?: any) {
+async function _stripePost(
+  path: string,
+  body: string,
+  key: string,
+  extraHeaders?: any
+) {
   extraHeaders = extraHeaders || {};
 
   return _callStripeAPI(`https://api.stripe.com${path}`, {
@@ -94,8 +105,8 @@ async function _stripePost(path: string, body: string, key: string, extraHeaders
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${key}`,
+      Accept: 'application/json',
+      Authorization: `Bearer ${key}`,
       'Stripe-version': '2020-03-02',
       ...extraHeaders,
     },
@@ -108,8 +119,8 @@ async function _stripeGet(path: string, key: string, extraHeaders?: any) {
   return _callStripeAPI(`https://api.stripe.com${path}`, {
     method: 'GET',
     headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${key}`,
+      Accept: 'application/json',
+      Authorization: `Bearer ${key}`,
       'Stripe-version': '2020-03-02',
       ...extraHeaders,
     },
@@ -138,20 +149,28 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     this.publishableKey = opts.key;
 
     return new Promise((resolve, reject) => {
-      scriptEl.addEventListener('error', (ev: ErrorEvent) => {
-        document.body.removeChild(scriptEl);
-        reject('Failed to load Stripe JS: ' + ev.message);
-      }, { once: true });
-
-      scriptEl.addEventListener('load', () => {
-        try {
-          this.stripe = new (window as any).Stripe(opts.key);
-          resolve();
-        } catch (err) {
+      scriptEl.addEventListener(
+        'error',
+        (ev: ErrorEvent) => {
           document.body.removeChild(scriptEl);
-          reject(err);
-        }
-      }, { once: true });
+          reject('Failed to load Stripe JS: ' + ev.message);
+        },
+        { once: true }
+      );
+
+      scriptEl.addEventListener(
+        'load',
+        () => {
+          try {
+            this.stripe = new (window as any).Stripe(opts.key);
+            resolve();
+          } catch (err) {
+            document.body.removeChild(scriptEl);
+            reject(err);
+          }
+        },
+        { once: true }
+      );
     });
   }
 
@@ -160,12 +179,16 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     return _stripePost('/v1/tokens', body, this.publishableKey);
   }
 
-  async createBankAccountToken(bankAccount: BankAccountTokenRequest): Promise<BankAccountTokenResponse> {
+  async createBankAccountToken(
+    bankAccount: BankAccountTokenRequest
+  ): Promise<BankAccountTokenResponse> {
     const body = formBody(bankAccount, 'bank_account');
     return _stripePost('/v1/tokens', body, this.publishableKey);
   }
 
-  async confirmPaymentIntent(opts: ConfirmPaymentIntentOptions): Promise<ConfirmPaymentIntentResponse> {
+  async confirmPaymentIntent(
+    opts: ConfirmPaymentIntentOptions
+  ): Promise<ConfirmPaymentIntentResponse> {
     if (opts.applePayOptions) {
       throw 'Apple Pay is not supported on web';
     }
@@ -190,7 +213,6 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
         save_payment_method: opts.saveMethod,
         setup_future_usage: opts.setupFutureUsage,
         payment_method: {
-
           billing_details: {
             email: opts.card.email,
             name: opts.card.name,
@@ -201,8 +223,8 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
               city: opts.card.address_city,
               state: opts.card.address_state,
               country: opts.card.address_country,
-              postal_code: opts.card.address_zip
-            }
+              postal_code: opts.card.address_zip,
+            },
           },
           card: {
             token: token.id,
@@ -210,10 +232,14 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
         },
       };
     }
-    return this.stripe.confirmCardPayment(opts.clientSecret, confirmOpts).then(response=>(response.paymentIntent || {} as any));
+    return this.stripe
+      .confirmCardPayment(opts.clientSecret, confirmOpts)
+      .then((response) => response.paymentIntent || ({} as any));
   }
 
-  async confirmSetupIntent(opts: ConfirmSetupIntentOptions): Promise<ConfirmSetupIntentResponse> {
+  async confirmSetupIntent(
+    opts: ConfirmSetupIntentOptions
+  ): Promise<ConfirmSetupIntentResponse> {
     if (!opts.clientSecret) {
       return Promise.reject('you must provide a client secret');
     }
@@ -221,7 +247,9 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     return Promise.reject('Not supported on web');
   }
 
-  async payWithApplePay(options: { applePayOptions: ApplePayOptions }): Promise<TokenResponse> {
+  async payWithApplePay(options: {
+    applePayOptions: ApplePayOptions;
+  }): Promise<TokenResponse> {
     throw 'Apple Pay is not supported on web';
   }
 
@@ -229,15 +257,21 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     throw 'Apple Pay is not supported on web';
   }
 
-  async finalizeApplePayTransaction(opts: FinalizeApplePayTransactionOptions): Promise<void> {
+  async finalizeApplePayTransaction(
+    opts: FinalizeApplePayTransactionOptions
+  ): Promise<void> {
     throw 'Apple Pay is not supported on web';
   }
 
-  async payWithGooglePay(opts: { googlePayOptions: GooglePayOptions }): Promise<void> {
+  async payWithGooglePay(opts: {
+    googlePayOptions: GooglePayOptions;
+  }): Promise<void> {
     throw 'Google Pay is not supported on web';
   }
 
-  async createSourceToken(opts: CreateSourceTokenOptions): Promise<TokenResponse> {
+  async createSourceToken(
+    opts: CreateSourceTokenOptions
+  ): Promise<TokenResponse> {
     throw 'Not implemented';
   }
 
@@ -264,7 +298,11 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
 
     delete account.legalEntity.type;
 
-    return _stripePost('/v1/tokens', formBody({ account: body }), this.publishableKey);
+    return _stripePost(
+      '/v1/tokens',
+      formBody({ account: body }),
+      this.publishableKey
+    );
   }
 
   async customizePaymentAuthUI(opts: any): Promise<void> {
@@ -283,13 +321,17 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     return { available: false };
   }
 
-  async validateCardNumber(opts: ValidateCardNumberOptions): Promise<ValidityResponse> {
+  async validateCardNumber(
+    opts: ValidateCardNumberOptions
+  ): Promise<ValidityResponse> {
     return {
       valid: opts.number.length > 0,
     };
   }
 
-  async validateExpiryDate(opts: ValidateExpiryDateOptions): Promise<ValidityResponse> {
+  async validateExpiryDate(
+    opts: ValidateExpiryDateOptions
+  ): Promise<ValidityResponse> {
     let { exp_month, exp_year } = opts;
 
     if (exp_month < 1 || exp_month > 12) {
@@ -308,7 +350,10 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
       return {
         valid: true,
       };
-    } else if (exp_year === currentYear && exp_month >= (new Date().getMonth() + 1)) {
+    } else if (
+      exp_year === currentYear &&
+      exp_month >= new Date().getMonth() + 1
+    ) {
       return {
         valid: true,
       };
@@ -331,13 +376,18 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     };
   }
 
-  async identifyCardBrand(opts: IdentifyCardBrandOptions): Promise<CardBrandResponse> {
+  async identifyCardBrand(
+    opts: IdentifyCardBrandOptions
+  ): Promise<CardBrandResponse> {
     return {
       brand: CardBrand.UNKNOWN,
     };
   }
 
-  addCustomerSource(opts: { sourceId: string; type?: string }): Promise<CustomerPaymentMethodsResponse> {
+  addCustomerSource(opts: {
+    sourceId: string;
+    type?: string;
+  }): Promise<CustomerPaymentMethodsResponse> {
     return this.cs.addSrc(opts.sourceId);
   }
 
@@ -345,17 +395,34 @@ export class StripePluginWeb extends WebPlugin implements StripePlugin {
     return this.cs.listPm();
   }
 
-  deleteCustomerSource(opts: { sourceId: string }): Promise<CustomerPaymentMethodsResponse> {
+  deleteCustomerSource(opts: {
+    sourceId: string;
+  }): Promise<CustomerPaymentMethodsResponse> {
     return undefined;
   }
 
   private cs: CustomerSession;
 
-  async initCustomerSession(opts: any | { id: string; object: 'ephemeral_key'; associated_objects: Array<{ type: 'customer'; id: string }>; created: number; expires: number; livemode: boolean; secret: string }): Promise<void> {
+  async initCustomerSession(
+    opts:
+      | any
+      | {
+          id: string;
+          object: 'ephemeral_key';
+          associated_objects: Array<{ type: 'customer'; id: string }>;
+          created: number;
+          expires: number;
+          livemode: boolean;
+          secret: string;
+        }
+  ): Promise<void> {
     this.cs = new CustomerSession(opts);
   }
 
-  setCustomerDefaultSource(opts: { sourceId: string; type?: string }): Promise<CustomerPaymentMethodsResponse> {
+  setCustomerDefaultSource(opts: {
+    sourceId: string;
+    type?: string;
+  }): Promise<CustomerPaymentMethodsResponse> {
     return this.cs.setDefaultSrc(opts.sourceId);
   }
 }
@@ -364,7 +431,12 @@ class CustomerSession {
   private readonly customerId: string;
 
   constructor(private key: any) {
-    if (!key.secret || !Array.isArray(key.associated_objects) || !key.associated_objects.length || !key.associated_objects[0].id) {
+    if (
+      !key.secret ||
+      !Array.isArray(key.associated_objects) ||
+      !key.associated_objects.length ||
+      !key.associated_objects[0].id
+    ) {
       throw new Error('you must provide a valid configuration');
     }
 
@@ -372,7 +444,10 @@ class CustomerSession {
   }
 
   async listPm(): Promise<CustomerPaymentMethodsResponse> {
-    const res = await _stripeGet(`/v1/customers/${this.customerId}`, this.key.secret);
+    const res = await _stripeGet(
+      `/v1/customers/${this.customerId}`,
+      this.key.secret
+    );
 
     return {
       paymentMethods: res.sources.data,
@@ -380,18 +455,25 @@ class CustomerSession {
   }
 
   async addSrc(id: string): Promise<CustomerPaymentMethodsResponse> {
-    await _stripePost('/v1/customers/' + this.customerId, formBody({
-      source: id,
-    }), this.key.secret);
+    await _stripePost(
+      '/v1/customers/' + this.customerId,
+      formBody({
+        source: id,
+      }),
+      this.key.secret
+    );
 
     return this.listPm();
   }
 
-
   async setDefaultSrc(id: string): Promise<CustomerPaymentMethodsResponse> {
-    await _stripePost('/v1/customers/' + this.customerId, formBody({
-      default_source: id,
-    }), this.key.secret);
+    await _stripePost(
+      '/v1/customers/' + this.customerId,
+      formBody({
+        default_source: id,
+      }),
+      this.key.secret
+    );
 
     return await this.listPm();
   }
@@ -401,4 +483,4 @@ const StripePluginInstance = new StripePluginWeb();
 
 export { StripePluginInstance };
 
-registerWebPlugin(StripePluginInstance);
+// registerPlugin(StripePluginInstance);

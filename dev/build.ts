@@ -4,16 +4,18 @@ import ora from 'ora';
 import path from 'path';
 import { CAP_DIR, PLUGIN_DIR, TEST_DIR } from './util';
 
-
 async function cap() {
   const o = ora('Building @capacitor/android').start();
 
-  const { stderr } = await exec('./gradlew clean build -b capacitor/build.gradle -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true 2>&1', {
-    cwd: CAP_DIR,
-  });
+  const { stderr } = await exec(
+    './gradlew clean build -b capacitor/build.gradle -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true 2>&1',
+    {
+      cwd: CAP_DIR,
+    }
+  );
 
   if (stderr) {
-    console.error(chalk.bold.red(stderr));
+    console.reject(chalk.bold.red(stderr));
     process.exit(1);
   }
   o.succeed();
@@ -28,7 +30,7 @@ async function plugin() {
     });
 
     if (stderr) {
-      console.error(stderr);
+      console.reject(stderr);
       process.exit(1);
     }
   }
@@ -39,7 +41,7 @@ async function plugin() {
     });
 
     if (stderr) {
-      console.error(chalk.bold.red(stderr));
+      console.reject(chalk.bold.red(stderr));
       process.exit(1);
     }
   }
@@ -59,11 +61,11 @@ async function test(opts?: { prod?: boolean }) {
   }
 
   const { stderr } = await exec(cmd, {
-    'cwd': TEST_DIR,
+    cwd: TEST_DIR,
   });
 
   if (stderr) {
-    console.error(chalk.bold.red(stderr));
+    console.reject(chalk.bold.red(stderr));
     process.exit(1);
   }
 

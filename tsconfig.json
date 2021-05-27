@@ -3,13 +3,8 @@
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "experimentalDecorators": true,
-    "lib": [
-      "dom",
-      "es2015"
-    ],
-    "typeRoots": [
-      "node_modules/@types"
-    ],
+    "lib": ["dom", "es2015"],
+    "typeRoots": ["node_modules/@types"],
     "module": "es2015",
     "moduleResolution": "node",
     "noImplicitAny": true,
@@ -17,14 +12,10 @@
     //    "noUnusedParameters": true,
     "outDir": "dist/esm",
     "sourceMap": true,
-    "target": "es2015",
+    "target": "es2017",
     "baseUrl": ".",
     "rootDir": "src"
   },
-  "include": [
-    "src/**.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src/**.ts"],
+  "exclude": ["node_modules"]
 }

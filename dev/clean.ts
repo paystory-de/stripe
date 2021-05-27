@@ -5,7 +5,6 @@ import path from 'path';
 import rimraf from 'rimraf';
 import { CAP_DIR, PLUGIN_DIR } from './util';
 
-
 async function cap() {
   const o = ora('Cleaning @capacitor/android').start();
   const { stderr } = await exec('./gradlew clean -b capacitor/build.gradle', {
@@ -13,7 +12,7 @@ async function cap() {
   });
 
   if (stderr) {
-    console.error(chalk.bold.red(stderr));
+    console.reject(chalk.bold.red(stderr));
     process.exit(1);
   }
 
@@ -30,7 +29,7 @@ async function plugin() {
     });
 
     if (stderr) {
-      console.error(chalk.bold.red(stderr));
+      console.reject(chalk.bold.red(stderr));
       process.exit(1);
     }
   }
@@ -49,7 +48,7 @@ async function test() {
     });
 
     if (stderr) {
-      console.error(chalk.bold.red(stderr));
+      console.reject(chalk.bold.red(stderr));
       process.exit(1);
     }
   }

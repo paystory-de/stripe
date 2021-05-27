@@ -19,13 +19,13 @@ public class StripePlugin: CAPPlugin {
         let value = call.getString("key") ?? ""
 
         if value == "" {
-            call.error("you must provide a valid key")
+            call.reject("you must provide a valid key")
             return
         }
 
         StripeAPI.defaultPublishableKey = value
 
-        call.success()
+        call.resolve()
     }
 
     @objc func validateCardNumber(_ call: CAPPluginCall) {
@@ -34,7 +34,7 @@ public class StripePlugin: CAPPlugin {
                 validatingCardBrand: false
         )
         
-        call.success([
+        call.resolve([
             "valid": state == STPCardValidationState.valid
         ])
     }
@@ -45,7 +45,7 @@ public class StripePlugin: CAPPlugin {
                 inMonth: call.getString("exp_month") ?? ""
         )
         
-        call.success([
+        call.resolve([
             "valid": state == STPCardValidationState.valid
         ])
     }
@@ -56,7 +56,7 @@ public class StripePlugin: CAPPlugin {
                 cardBrand: strToBrand(call.getString("brand"))
         )
         
-        call.success([
+        call.resolve([
             "valid": state == STPCardValidationState.valid
         ])
     }
@@ -64,7 +64,7 @@ public class StripePlugin: CAPPlugin {
     @objc func identifyCardBrand(_ call: CAPPluginCall) {
         let val = STPCardValidator.brand(forNumber: call.getString("number") ?? "")
         
-        call.success([
+        call.resolve([
             "brand": brandToStr(val)
         ])
     }
@@ -78,7 +78,7 @@ public class StripePlugin: CAPPlugin {
 
         STPAPIClient.shared.createToken(withCard: params) { (token, error) in
             guard let token = token else {
-                call.error("unable to create token: " + error!.localizedDescription, error)
+                call.reject("unable to create token: " + error!.localizedDescription, error)
                 return
             }
             call.resolve(token.allResponseFields as! PluginResultData)
@@ -94,7 +94,7 @@ public class StripePlugin: CAPPlugin {
         
         STPAPIClient.shared.createToken(withBankAccount: params) { (token, error) in
             guard let token = token else {
-                call.error("unable to create bank account token: " + error!.localizedDescription, error)
+                call.reject("unable to create bank account token: " + error!.localizedDescription, error)
                 return
             }
 
@@ -108,7 +108,7 @@ public class StripePlugin: CAPPlugin {
         do {
             paymentRequest = try applePayOpts(call: call)
         } catch let err {
-            call.error("unable to parse apple pay options: " + err.localizedDescription, err)
+            call.reject("unable to parse apple pay options: " + err.localizedDescription, err)
             return
         }
 
@@ -119,17 +119,17 @@ public class StripePlugin: CAPPlugin {
             self.applePayCtx = ApplePayContext(callbackId: call.callbackId, mode: .Token, completion: nil, clientSecret: nil)
 
             DispatchQueue.main.async {
-                self.bridge.viewController.present(authCtrl, animated: true, completion: nil)
+                self.bridge?.viewController.present(authCtrl, animated: true, completion: nil)
             }
             return
         }
 
-        call.error("invalid payment request")
+        call.reject("invalid payment request")
     }
 
     @objc func cancelApplePay(_ call: CAPPluginCall) {
         guard let ctx = self.applePayCtx else {
-            call.error("there is no existing Apple Pay transaction to cancel")
+            call.reject("there is no existing Apple Pay transaction to cancel")
             return
         }
 
@@ -137,17 +137,17 @@ public class StripePlugin: CAPPlugin {
             c(PKPaymentAuthorizationResult(status: .failure, errors: nil))
         }
 
-        if let oldCallback = self.bridge.getSavedCall(ctx.callbackId) {
-            self.bridge.releaseCall(oldCallback)
+        if let oldCallback = self.bridge?.getSavedCall(ctx.callbackId) {
+            self.bridge?.releaseCall(oldCallback)
         }
 
         self.applePayCtx = nil
-        call.success()
+        call.resolve()
     }
 
     @objc func finalizeApplePayTransaction(_ call: CAPPluginCall) {
         guard let ctx = self.applePayCtx else {
-            call.error("there is no existing Apple Pay transaction to finalize")
+            call.reject("there is no existing Apple Pay transaction to finalize")
             return
         }
 
@@ -156,9 +156,9 @@ public class StripePlugin: CAPPlugin {
         if let c = ctx.completion {
             let s: PKPaymentAuthorizationStatus = success ? .success : .failure
             c(PKPaymentAuthorizationResult(status: s, errors: nil))
-            call.success()
+            call.resolve()
         } else {
-            call.error("unable to complete the payment")
+            call.reject("unable to complete the payment")
         }
 
         self.clearApplePay()
@@ -169,20 +169,20 @@ public class StripePlugin: CAPPlugin {
             return
         }
 
-        call.error("not implemented")
+        call.reject("not implemented")
         // TODO implement
         /*
         let type = call.getInt("sourceType")
         
         if type == nil {
-            call.error("you must provide a source type")
+            call.reject("you must provide a source type")
             return
         }
         
         let sourceType = STPSourceType.init(rawValue: type!)
         
         if sourceType == nil {
-            call.error("invalid source type")
+            call.reject("invalid source type")
             return
         }
         
@@ -235,7 +235,7 @@ public class StripePlugin: CAPPlugin {
         
         STPAPIClient.shared.createToken(withPersonalIDNumber: pii) { (token, error) in
             guard let token = token else {
-                call.error("unable to create token: " + error!.localizedDescription, error)
+                call.reject("unable to create token: " + error!.localizedDescription, error)
                 return
             }
 
@@ -250,7 +250,7 @@ public class StripePlugin: CAPPlugin {
             return
         }
 
-        call.error("not implemented")
+        call.reject("not implemented")
 
         // TODO implement
     }
@@ -263,7 +263,7 @@ public class StripePlugin: CAPPlugin {
         let clientSecret = call.getString("clientSecret")
 
         if clientSecret == nil || clientSecret == "" {
-            call.error("you must provide a client secret")
+            call.reject("you must provide a client secret")
             return
         }
 
@@ -274,7 +274,7 @@ public class StripePlugin: CAPPlugin {
             do {
                 paymentRequest = try applePayOpts(call: call)
             } catch let err {
-                call.error("unable to parse apple pay options: " + err.localizedDescription, err)
+                call.reject("unable to parse apple pay options: " + err.localizedDescription, err)
                 return
             }
 
@@ -287,17 +287,17 @@ public class StripePlugin: CAPPlugin {
                                                    clientSecret: clientSecret)
 
                 DispatchQueue.main.async {
-                    self.bridge.viewController.present(authCtrl,
+                    self.bridge?.viewController.present(authCtrl,
                                                        animated: true,
                                                        completion: nil)
                 }
                 return
             }
 
-            call.error("invalid payment request")
+            call.reject("invalid payment request")
             return
         } else if call.hasOption("googlePayOptions") {
-            call.error("GooglePay is not supported on iOS")
+            call.reject("GooglePay is not supported on iOS")
             return
         }
 
@@ -333,16 +333,16 @@ public class StripePlugin: CAPPlugin {
             switch status {
             case .failed:
                 if err != nil {
-                    call.error("payment failed: " + err!.localizedDescription, err)
+                    call.reject("payment failed: " + err!.localizedDescription, err)
                 } else {
-                    call.error("payment failed")
+                    call.reject("payment failed")
                 }
 
             case .canceled:
-                call.error("user cancelled the transaction")
+                call.reject("user cancelled the transaction")
 
             case .succeeded:
-                call.success(pi!.allResponseFields as! PluginResultData)
+                call.resolve(pi!.allResponseFields as! PluginResultData)
             }
         }
     }
@@ -355,7 +355,7 @@ public class StripePlugin: CAPPlugin {
         let clientSecret = call.getString("clientSecret")
 
         if clientSecret == nil || clientSecret == "" {
-            call.error("you must provide a client secret")
+            call.reject("you must provide a client secret")
             return
         }
 
@@ -385,16 +385,16 @@ public class StripePlugin: CAPPlugin {
             switch status {
             case .failed:
                 if err != nil {
-                    call.error("payment failed: " + err!.localizedDescription, err)
+                    call.reject("payment failed: " + err!.localizedDescription, err)
                 } else {
-                    call.error("payment failed")
+                    call.reject("payment failed")
                 }
 
             case .canceled:
-                call.error("user cancelled the transaction")
+                call.reject("user cancelled the transaction")
 
             case .succeeded:
-                call.success([
+                call.resolve([
                     "paymentMethodId": si?.paymentMethodID! ?? nil
                 ])
             }
@@ -410,7 +410,7 @@ public class StripePlugin: CAPPlugin {
                 let expires = call.getInt("expires"),
                 let livemode = call.getBool("livemode"),
                 let secret = call.getString("secret") else {
-            call.error("invalid ephemeral options")
+            call.reject("invalid ephemeral options")
             return
         }
 
@@ -474,12 +474,12 @@ public class StripePlugin: CAPPlugin {
         self.customerCtx = ctx
         self.pCfg = pCfg
         
-        call.success()
+        call.resolve()
     }
 
     @objc func presentPaymentOptions(_ call: CAPPluginCall) {
         guard let pCfg = self.pCfg, let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
         
@@ -489,7 +489,7 @@ public class StripePlugin: CAPPlugin {
         
         DispatchQueue.main.async {
             pCtx.delegate = self
-            pCtx.hostViewController = self.bridge.viewController
+            pCtx.hostViewController = self.bridge?.viewController
             pCtx.presentPaymentOptionsViewController()
         }
 
@@ -498,7 +498,7 @@ public class StripePlugin: CAPPlugin {
 
     @objc func presentShippingOptions(_ call: CAPPluginCall) {
         guard let pCfg = self.pCfg, let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
         
@@ -508,14 +508,14 @@ public class StripePlugin: CAPPlugin {
 
         DispatchQueue.main.async {
             pCtx.delegate = self
-            pCtx.hostViewController = self.bridge.viewController
+            pCtx.hostViewController = self.bridge?.viewController
             pCtx.presentShippingViewController()
         }
     }
 
     @objc func presentPaymentRequest(_ call: CAPPluginCall) {
         guard let pCfg = self.pCfg, let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
         
@@ -525,42 +525,42 @@ public class StripePlugin: CAPPlugin {
 
         DispatchQueue.main.async {
             pCtx.delegate = self
-            pCtx.hostViewController = self.bridge.viewController
+            pCtx.hostViewController = self.bridge?.viewController
             pCtx.paymentAmount = 5151
             pCtx.requestPayment()
         }
     }
 
     @objc func customizePaymentAuthUI(_ call: CAPPluginCall) {
-        call.error("not implemented yet")
+        call.reject("not implemented yet")
     }
 
     @objc func initPaymentSession(_ call: CAPPluginCall) {
         guard let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
 
         self.paymentCtx = STPPaymentContext(customerContext: ctx)
         self.paymentCtx!.delegate = self
-        self.paymentCtx!.hostViewController = self.bridge.viewController
+        self.paymentCtx!.hostViewController = self.bridge?.viewController
 
         if let amount = call.getInt("paymentAmount") {
             self.paymentCtx!.paymentAmount = amount
         }
 
-        call.success()
+        call.resolve()
     }
 
     @objc func customerPaymentMethods(_ call: CAPPluginCall) {
         guard let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
 
         ctx.listPaymentMethodsForCustomer { methods, error in
             guard let methods = methods else {
-                call.error(error?.localizedDescription ?? "unknown error")
+                call.reject(error?.localizedDescription ?? "unknown error")
                 return
             }
 
@@ -571,19 +571,19 @@ public class StripePlugin: CAPPlugin {
                 vals.append(val)
             }
 
-            call.success([
+            call.resolve([
                 "paymentMethods": vals,
             ])
         }
     }
 
     @objc func setCustomerDefaultSource(_ call: CAPPluginCall) {
-        call.error("not supported on iOS")
+        call.reject("not supported on iOS")
     }
 
     @objc func addCustomerSource(_ call: CAPPluginCall) {
         guard let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
         
@@ -591,13 +591,13 @@ public class StripePlugin: CAPPlugin {
             "type": call.getString("type") as Any,
             "id": call.getString("sourceId") as Any,
         ]) else {
-            call.error("failed to decode object as a PaymentMethod")
+            call.reject("failed to decode object as a PaymentMethod")
             return
         }
         
         ctx.attachPaymentMethod(toCustomer: pm, completion: { (err) in
             if (err != nil) {
-                call.error(err!.localizedDescription)
+                call.reject(err!.localizedDescription)
                 return
             }
             
@@ -607,20 +607,20 @@ public class StripePlugin: CAPPlugin {
     
     @objc func deleteCustomerSource(_ call: CAPPluginCall) {
         guard let ctx = self.customerCtx else {
-            call.error(ERR_NO_ACTIVE_CUSTOMER_CTX)
+            call.reject(ERR_NO_ACTIVE_CUSTOMER_CTX)
             return
         }
         
         guard let pm = STPPaymentMethod.decodedObject(fromAPIResponse: [
                    "id": call.getString("sourceId") as Any,
                ]) else {
-                   call.error("failed to decode object as a PaymentMethod")
+                   call.reject("failed to decode object as a PaymentMethod")
                    return
                }
         
         ctx.detachPaymentMethod(fromCustomer: pm) { (err) in
             if (err != nil) {
-                call.error(err!.localizedDescription)
+                call.reject(err!.localizedDescription)
                 return
             }
             
@@ -629,19 +629,19 @@ public class StripePlugin: CAPPlugin {
     }
 
     @objc func isApplePayAvailable(_ call: CAPPluginCall) {
-        call.success([
+        call.resolve([
             "available": Stripe.deviceSupportsApplePay()
         ])
     }
 
     @objc func isGooglePayAvailable(_ call: CAPPluginCall) {
-        call.success([
+        call.resolve([
             "available": false
         ])
     }
 
     @objc func payWithGooglePay(_ call: CAPPluginCall) {
-        call.error("Google Pay is not available on iOS")
+        call.reject("Google Pay is not available on iOS")
     }
 
     @objc internal func clearApplePay() {
@@ -649,8 +649,8 @@ public class StripePlugin: CAPPlugin {
             return
         }
 
-        if let c = self.bridge.getSavedCall(ctx.callbackId) {
-            self.bridge.releaseCall(c)
+        if let c = self.bridge?.getSavedCall(ctx.callbackId) {
+            self.bridge?.releaseCall(c)
         }
 
         self.applePayCtx = nil

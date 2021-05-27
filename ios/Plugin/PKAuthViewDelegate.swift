@@ -12,8 +12,8 @@ extension StripePlugin : PKPaymentAuthorizationViewControllerDelegate {
             return
         }
 
-        if let c = self.bridge.getSavedCall(ctx.callbackId) {
-            c.error("payment timeout or user cancelled")
+        if let c = self.bridge?.getSavedCall(ctx.callbackId) {
+            c.reject("payment timeout or user cancelled")
         }
 
         self.clearApplePay()
@@ -21,7 +21,7 @@ extension StripePlugin : PKPaymentAuthorizationViewControllerDelegate {
 
     @available(iOS 11.0, *)
     public func paymentAuthorizationViewController(_ controller: PKPaymentAuthorizationViewController, didAuthorizePayment payment: PKPayment, handler completion: @escaping (PKPaymentAuthorizationResult) -> Void) {
-        guard let ctx = self.applePayCtx, let callback = self.bridge.getSavedCall(ctx.callbackId) else {
+        guard let ctx = self.applePayCtx, let callback = self.bridge?.getSavedCall(ctx.callbackId) else {
             completion(PKPaymentAuthorizationResult(status: .failure, errors: nil))
             self.clearApplePay()
             return
@@ -31,7 +31,7 @@ extension StripePlugin : PKPaymentAuthorizationViewControllerDelegate {
         case .PaymentIntent:
             guard let clientSecret = ctx.clientSecret else {
                 completion(PKPaymentAuthorizationResult(status: .failure, errors: nil))
-                callback.error("unexpected error")
+                callback.reject("unexpected error")
                 self.clearApplePay()
                 return
             }
@@ -39,7 +39,7 @@ extension StripePlugin : PKPaymentAuthorizationViewControllerDelegate {
             STPAPIClient.shared.createPaymentMethod(with: payment) { (pm, err) in
                 guard let pm = pm else {
                     completion(PKPaymentAuthorizationResult(status: .failure, errors: nil))
-                    callback.error("unable to create payment method: " + err!.localizedDescription, err)
+                    callback.reject("unable to create payment method: " + err!.localizedDescription, err)
                     self.clearApplePay()
                     return
                 }
@@ -51,21 +51,21 @@ extension StripePlugin : PKPaymentAuthorizationViewControllerDelegate {
                     switch status {
                     case .failed:
                         if err != nil {
-                            callback.error("payment failed: " + err!.localizedDescription, err)
+                            callback.reject("payment failed: " + err!.localizedDescription, err)
                         } else {
-                            callback.error("payment failed")
+                            callback.reject("payment failed")
                         }
                         completion(PKPaymentAuthorizationResult(status: .failure, errors: nil))
                         self.clearApplePay()
 
                     case .canceled:
-                        callback.error("user cancelled the transaction")
+                        callback.reject("user cancelled the transaction")
                         completion(PKPaymentAuthorizationResult(status: .failure, errors: nil))
                         self.clearApplePay()
 
                     case .succeeded:
                         completion(PKPaymentAuthorizationResult(status: .success, errors: nil))
-                        callback.success([
+                        callback.resolve([
                             "success": true
                         ])
                         self.clearApplePay()
@@ -77,12 +77,12 @@ extension StripePlugin : PKPaymentAuthorizationViewControllerDelegate {
             STPAPIClient.shared.createToken(with: payment) { (t, err) in
                 guard let t = t else {
                     completion(PKPaymentAuthorizationResult(status: .failure, errors: nil))
-                    callback.error("unable to create token: " + err!.localizedDescription, err)
+                    callback.reject("unable to create token: " + err!.localizedDescription, err)
                     self.clearApplePay()
                     return
                 }
 
-                callback.success(["token": t.tokenId])
+                callback.resolve(["token": t.tokenId])
                 self.applePayCtx!.completion = completion
             }
         }
