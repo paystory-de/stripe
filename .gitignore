@@ -20,7 +20,7 @@ ios/public
 ios/Podfile.lock
 xcuserdata
 
-dist
+# dist
 
 android/.idea
 android/.gradle

@@ -14,7 +14,9 @@ import com.stripe.android.view.PaymentMethodsActivityStarter
 import org.json.JSONException
 import com.stripe.android.Stripe as Stripe2
 
-@CapacitorPlugin()
+@CapacitorPlugin(
+    name = "Stripe"
+)
 class Stripe : Plugin() {
     private lateinit var stripeInstance: Stripe2
     private lateinit var publishableKey: String
